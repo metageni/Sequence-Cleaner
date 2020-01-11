@@ -7,7 +7,6 @@ recently I decided to re-write using Pysam and Python 3. I hope you enjoy it.
   * [dependencies](#dependencies)
   * [git](#git)
 * [Usage](#usage)
-* [Output](#output)
 
 ## Installation
 ### Dependencies
