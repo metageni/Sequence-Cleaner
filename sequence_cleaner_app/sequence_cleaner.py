@@ -9,12 +9,12 @@ import os
 from collections import defaultdict
 from pathlib import Path
 
+from sequence_cleaner_app import version
+
 from pysam import FastxFile
 
 LOGGER_FORMAT = '[%(asctime)s - %(levelname)s] %(message)s'
 RC_TRANS = str.maketrans('ACGTNacgtn', 'TGCANTGCAN')
-
-version = "1"
 
 
 def is_wanted_file(queries):
@@ -131,13 +131,13 @@ def parse_args():
 
     """
     parser = argparse.ArgumentParser(description="Sequence Cleaner: Remove Duplicate Sequences, etc",
-                                     epilog="example > sequence_cleaner -q INPUT")
+                                     epilog="example > sequence_cleaner -q INPUT -o OUTPUT")
     parser.add_argument('-v', '--version', action='version', version='sequence_cleaner {}'.format(version))
     parser.add_argument("-q", "--query", help="Path to directory with FAST(A/Q) files", required=True)
     parser.add_argument("-o", "--output_directory", help="Path to output files", required=True)
     parser.add_argument("-ml", "--minimum_length", help="Minimum length allowed (default=0 - allows all the lengths)",
                         default="0")
-    parser.add_argument("-mn", "--percentage_n", help="% of N is allowed (default=100)", default="100")
+    parser.add_argument("-mn", "--percentage_n", help="Percentage of N is allowed (default=100)", default="100")
     parser.add_argument('-l', '--log', help='Path to log file (Default: STDOUT).', required=False)
 
     return parser.parse_args()
