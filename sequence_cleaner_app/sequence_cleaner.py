@@ -47,7 +47,7 @@ def reverse_complement(sequence):
     return sequence[::-1].translate(RC_TRANS)
 
 
-def write_fasta(sequences_hash, output_fasta):
+def write_fasta(sequences_hash, output_fasta, remove_duplicate=True):
     """Write FASTA file output based on sequences and ids from the hash.
 
     Args:
@@ -57,17 +57,24 @@ def write_fasta(sequences_hash, output_fasta):
     """
     with open(output_fasta, "w+") as fasta_object:
         for sequence in sequences_hash:
-            sequence_id = "__".join(sequences_hash[sequence])
-            fasta_object.write(">{}\n{}\n".format(sequence_id, sequence))
+            if remove_duplicate:
+                sequence_id = "__".join(sequences_hash[sequence])
+                fasta_object.write(">{}\n{}\n".format(sequence_id, sequence))
+            else:
+                sequence_id = sequence
+                sequence = sequences_hash[sequence_id][0]
+                fasta_object.write(">{}\n{}\n".format(sequence_id, sequence))
 
 
-def sequence_cleaner(fasta_q_file, min_length=0, percentage_n=100.0):
+
+def sequence_cleaner(fasta_q_file, min_length=0, percentage_n=100.0, remove_duplicate=True):
     """Read FASTA/FASTQ file and clean the file.
 
     Args:
         fasta_q_file (str): Path to FASTA/Q file.
         min_length (str): Minimum length allowed (default=0 - allows all the lengths).
         percentage_n (float): % of N is allowed (default=100).
+        remove_duplicate (bool): Remove duplicate and keep one sequence (default: True)
 
     Returns:
         collections.defaultdict: Hash with clean sequences.
@@ -101,7 +108,7 @@ def sequence_cleaner(fasta_q_file, min_length=0, percentage_n=100.0):
                 total_high_n_sequences += 1
                 continue
 
-            else:
+            elif remove_duplicate:
                 # repeated sequence - add sequence ID to hash
                 if sequence in hash_sequences:
                     hash_sequences[sequence].append(sequence_id)
@@ -118,6 +125,9 @@ def sequence_cleaner(fasta_q_file, min_length=0, percentage_n=100.0):
                     # if not, it means it was the first time the sequence was seen - add it to hash
                     else:
                         hash_sequences[sequence].append(sequence_id)
+            else:
+                hash_sequences[sequence_id].append(sequence)
+
 
     return (hash_sequences, total_sequences_processed, total_repeated_sequences, total_repeated_sequences_rc,
             total_short_sequences, total_high_n_sequences)
@@ -138,6 +148,7 @@ def parse_args():
     parser.add_argument("-ml", "--minimum_length", help="Minimum length allowed (default=0 - allows all the lengths)",
                         default="0")
     parser.add_argument("-mn", "--percentage_n", help="Percentage of N is allowed (default=100)", default="100")
+    parser.add_argument('--concatenate_duplicates', help='Concatenate Duplicate Sequences', action='store_true', required=False)
     parser.add_argument('-l', '--log', help='Path to log file (Default: STDOUT).', required=False)
 
     return parser.parse_args()
@@ -150,6 +161,7 @@ def main():
     output_directory = Path(args.output_directory)
     minimum_length = int(args.minimum_length)
     percentage_n = float(args.percentage_n)
+    concatenate_duplicates = args.concatenate_duplicates
 
     if args.log:
         logging.basicConfig(format=LOGGER_FORMAT, level=logging.INFO, filename=args.log)
@@ -174,11 +186,12 @@ def main():
     for counter, fasta_q_file in enumerate(query_files):
         logger.info("1.{}) Cleaning input: {}/{}".format(counter + 1, query, fasta_q_file))
         (hash_sequences, total_sequences_processed, total_repeated_sequences, total_repeated_sequences_rc,
-         total_short_sequences, total_high_n_sequences) = sequence_cleaner(fasta_q_file, minimum_length, percentage_n)
+         total_short_sequences, total_high_n_sequences) = sequence_cleaner("{}/{}".format(query, fasta_q_file), minimum_length, percentage_n,
+                                                                           concatenate_duplicates)
 
         output_path = "{}/clean_{}".format(output_directory, fasta_q_file)
         logger.info("1.{}) Writing Results: {}".format(counter + 1, output_path))
-        write_fasta(hash_sequences, output_path)
+        write_fasta(hash_sequences, output_path, concatenate_duplicates)
 
         logger.info("1.{}) Stats for: {}".format(counter + 1, output_path))
         logger.info("1.{}) - # Sequences Processed: {}".format(counter + 1, total_sequences_processed))
