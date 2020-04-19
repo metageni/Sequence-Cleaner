@@ -47,7 +47,7 @@ def reverse_complement(sequence):
     return sequence[::-1].translate(RC_TRANS)
 
 
-def write_fasta(sequences_hash, output_fasta, remove_duplicate=True):
+def write_fasta(sequences_hash, output_fasta, concatenate_duplicates=True):
     """Write FASTA file output based on sequences and ids from the hash.
 
     Args:
@@ -57,7 +57,7 @@ def write_fasta(sequences_hash, output_fasta, remove_duplicate=True):
     """
     with open(output_fasta, "w+") as fasta_object:
         for sequence in sequences_hash:
-            if remove_duplicate:
+            if concatenate_duplicates:
                 sequence_id = "__".join(sequences_hash[sequence])
                 fasta_object.write(">{}\n{}\n".format(sequence_id, sequence))
             else:
@@ -67,14 +67,14 @@ def write_fasta(sequences_hash, output_fasta, remove_duplicate=True):
 
 
 
-def sequence_cleaner(fasta_q_file, min_length=0, percentage_n=100.0, remove_duplicate=True):
+def sequence_cleaner(fasta_q_file, min_length=0, percentage_n=100.0, concatenate_duplicates=True):
     """Read FASTA/FASTQ file and clean the file.
 
     Args:
         fasta_q_file (str): Path to FASTA/Q file.
         min_length (str): Minimum length allowed (default=0 - allows all the lengths).
         percentage_n (float): % of N is allowed (default=100).
-        remove_duplicate (bool): Remove duplicate and keep one sequence (default: True)
+        concatenate_duplicates (bool): Remove duplicate and keep one sequence (default: True)
 
     Returns:
         collections.defaultdict: Hash with clean sequences.
@@ -108,7 +108,7 @@ def sequence_cleaner(fasta_q_file, min_length=0, percentage_n=100.0, remove_dupl
                 total_high_n_sequences += 1
                 continue
 
-            elif remove_duplicate:
+            elif concatenate_duplicates:
                 # repeated sequence - add sequence ID to hash
                 if sequence in hash_sequences:
                     hash_sequences[sequence].append(sequence_id)
@@ -148,7 +148,7 @@ def parse_args():
     parser.add_argument("-ml", "--minimum_length", help="Minimum length allowed (default=0 - allows all the lengths)",
                         default="0")
     parser.add_argument("-mn", "--percentage_n", help="Percentage of N is allowed (default=100)", default="100")
-    parser.add_argument('--concatenate_duplicates', help='Concatenate Duplicate Sequences', action='store_true', required=False)
+    parser.add_argument('--concatenate_duplicates', help='Keep All Duplicate Sequences', action='store_false', required=False)
     parser.add_argument('-l', '--log', help='Path to log file (Default: STDOUT).', required=False)
 
     return parser.parse_args()
@@ -162,6 +162,7 @@ def main():
     minimum_length = int(args.minimum_length)
     percentage_n = float(args.percentage_n)
     concatenate_duplicates = args.concatenate_duplicates
+    print(">>>>>>>> ", concatenate_duplicates)
 
     if args.log:
         logging.basicConfig(format=LOGGER_FORMAT, level=logging.INFO, filename=args.log)
