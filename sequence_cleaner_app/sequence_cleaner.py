@@ -148,7 +148,7 @@ def parse_args():
     parser.add_argument("-ml", "--minimum_length", help="Minimum length allowed (default=0 - allows all the lengths)",
                         default="0")
     parser.add_argument("-mn", "--percentage_n", help="Percentage of N is allowed (default=100)", default="100")
-    parser.add_argument('--concatenate_duplicates', help='Keep All Duplicate Sequences', action='store_false', required=False)
+    parser.add_argument('--keep_all_duplicates', help='Keep All Duplicate Sequences', action='store_false', required=False)
     parser.add_argument('-l', '--log', help='Path to log file (Default: STDOUT).', required=False)
 
     return parser.parse_args()
@@ -161,8 +161,7 @@ def main():
     output_directory = Path(args.output_directory)
     minimum_length = int(args.minimum_length)
     percentage_n = float(args.percentage_n)
-    concatenate_duplicates = args.concatenate_duplicates
-    print(">>>>>>>> ", concatenate_duplicates)
+    concatenate_duplicates = args.keep_all_duplicates
 
     if args.log:
         logging.basicConfig(format=LOGGER_FORMAT, level=logging.INFO, filename=args.log)
