@@ -15,6 +15,7 @@ from pysam import FastxFile
 
 LOGGER_FORMAT = '[%(asctime)s - %(levelname)s] %(message)s'
 RC_TRANS = str.maketrans('ACGTNacgtn', 'TGCANTGCAN')
+AMBIGUOUS_BASES = {'M', 'D', 'R', 'N', 'K', 'Y', 'S', 'B', 'H', '-', 'V', 'W'}
 
 
 def is_wanted_file(queries):
@@ -67,14 +68,15 @@ def write_fasta(sequences_hash, output_fasta, concatenate_duplicates=True):
 
 
 
-def sequence_cleaner(fasta_q_file, min_length=0, percentage_n=100.0, concatenate_duplicates=True):
+def sequence_cleaner(fasta_q_file, min_length=0, percentage_n=100.0, concatenate_duplicates=True, remove_ambiguous=False):
     """Read FASTA/FASTQ file and clean the file.
 
     Args:
         fasta_q_file (str): Path to FASTA/Q file.
         min_length (str): Minimum length allowed (default=0 - allows all the lengths).
         percentage_n (float): % of N is allowed (default=100).
-        concatenate_duplicates (bool): Remove duplicate and keep one sequence (default: True)
+        concatenate_duplicates (bool): Remove duplicate and keep one sequence (default=True).
+        remove_ambiguous (bool): Remove any sequence with an ambiguous base (default=False).
 
     Returns:
         collections.defaultdict: Hash with clean sequences.
@@ -99,34 +101,42 @@ def sequence_cleaner(fasta_q_file, min_length=0, percentage_n=100.0, concatenate
             sequence_id = entry.name
             sequence = entry.sequence.upper()
 
-            # remove sequences that are shorter or equal to `min_length`
-            if len(sequence) <= min_length:
-                total_short_sequences += 1
-                continue
-            # remove sequences that do noot meet the % N
-            elif (float(sequence.count("N")) / float(len(sequence))) * 100 > percentage_n:
-                total_high_n_sequences += 1
-                continue
+            found_ambiguous = False
+            if remove_ambiguous:
+                for base in sequence:
+                    # found ambiguous base. Sequence is skipped
+                    if base in AMBIGUOUS_BASES:
+                        found_ambiguous = True
+                        break
+            if not found_ambiguous:
+                # remove sequences that are shorter or equal to `min_length`
+                if len(sequence) <= min_length:
+                    total_short_sequences += 1
+                    continue
+                # remove sequences that do noot meet the % N
+                elif (float(sequence.count("N")) / float(len(sequence))) * 100 > percentage_n:
+                    total_high_n_sequences += 1
+                    continue
 
-            elif concatenate_duplicates:
-                # repeated sequence - add sequence ID to hash
-                if sequence in hash_sequences:
-                    hash_sequences[sequence].append(sequence_id)
-                    total_repeated_sequences += 1
-                else:
-                    rc = reverse_complement(sequence)
-                    # check if reverse complement is already in hash
-                    # if so, add modified ID and flags that the sequence reverse complement was repeated
-                    if rc in hash_sequences:
-                        hash_sequences[rc].append("{}_RC".format(sequence_id))
-                        total_repeated_sequences += 1
-                        total_repeated_sequences_rc += 1
-
-                    # if not, it means it was the first time the sequence was seen - add it to hash
-                    else:
+                elif concatenate_duplicates:
+                    # repeated sequence - add sequence ID to hash
+                    if sequence in hash_sequences:
                         hash_sequences[sequence].append(sequence_id)
-            else:
-                hash_sequences[sequence_id].append(sequence)
+                        total_repeated_sequences += 1
+                    else:
+                        rc = reverse_complement(sequence)
+                        # check if reverse complement is already in hash
+                        # if so, add modified ID and flags that the sequence reverse complement was repeated
+                        if rc in hash_sequences:
+                            hash_sequences[rc].append("{}_RC".format(sequence_id))
+                            total_repeated_sequences += 1
+                            total_repeated_sequences_rc += 1
+
+                        # if not, it means it was the first time the sequence was seen - add it to hash
+                        else:
+                            hash_sequences[sequence].append(sequence_id)
+                else:
+                    hash_sequences[sequence_id].append(sequence)
 
 
     return (hash_sequences, total_sequences_processed, total_repeated_sequences, total_repeated_sequences_rc,
@@ -149,6 +159,8 @@ def parse_args():
                         default="0")
     parser.add_argument("-mn", "--percentage_n", help="Percentage of N is allowed (default=100)", default="100")
     parser.add_argument('--keep_all_duplicates', help='Keep All Duplicate Sequences', action='store_false', required=False)
+    parser.add_argument('--remove_ambiguous', help='Remove any sequence with ambiguous bases', action='store_true', required=False)
+
     parser.add_argument('-l', '--log', help='Path to log file (Default: STDOUT).', required=False)
 
     return parser.parse_args()
@@ -162,6 +174,7 @@ def main():
     minimum_length = int(args.minimum_length)
     percentage_n = float(args.percentage_n)
     concatenate_duplicates = args.keep_all_duplicates
+    remove_ambiguous = args.remove_ambiguous
 
     if args.log:
         logging.basicConfig(format=LOGGER_FORMAT, level=logging.INFO, filename=args.log)
@@ -187,7 +200,7 @@ def main():
         logger.info("1.{}) Cleaning input: {}/{}".format(counter + 1, query, fasta_q_file))
         (hash_sequences, total_sequences_processed, total_repeated_sequences, total_repeated_sequences_rc,
          total_short_sequences, total_high_n_sequences) = sequence_cleaner("{}/{}".format(query, fasta_q_file), minimum_length, percentage_n,
-                                                                           concatenate_duplicates)
+                                                                           concatenate_duplicates, remove_ambiguous)
 
         output_path = "{}/clean_{}".format(output_directory, fasta_q_file)
         logger.info("1.{}) Writing Results: {}".format(counter + 1, output_path))
