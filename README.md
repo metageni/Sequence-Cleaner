@@ -18,10 +18,10 @@ recently I decided to re-write using Pysam and Python 3. I hope you enjoy it.
 
 	# these steps should install the dependencies
 
-	# clone focus
+	# clone repo
 	git clone git@github.com:metageni/Sequence-Cleaner.git
 
-	# install focus
+	# install tool
 	cd Sequence-Cleaner && pip install -U -r requirements.txt && python setup.py install
 
 ## Usage
