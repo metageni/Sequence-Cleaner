@@ -26,7 +26,8 @@ recently I decided to re-write using Pysam and Python 3. I hope you enjoy it.
 
 ## Usage
     usage: sequence_cleaner [-h] [-v] -q QUERY -o OUTPUT_DIRECTORY
-                            [-ml MINIMUM_LENGTH] [-mn PERCENTAGE_N] [-l LOG]
+                            [-ml MINIMUM_LENGTH] [-mn PERCENTAGE_N]
+                            [--keep_all_duplicates] [-l LOG]
     
     Sequence Cleaner: Remove Duplicate Sequences, etc
     
@@ -42,6 +43,8 @@ recently I decided to re-write using Pysam and Python 3. I hope you enjoy it.
                             lengths)
       -mn PERCENTAGE_N, --percentage_n PERCENTAGE_N
                             Percentage of N is allowed (default=100)
+      --keep_all_duplicates
+                            Keep All Duplicate Sequences
       -l LOG, --log LOG     Path to log file (Default: STDOUT).
     
     example > sequence_cleaner -q INPUT -o OUTPUT
