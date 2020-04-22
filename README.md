@@ -22,7 +22,7 @@ recently I decided to re-write using Pysam and Python 3. I hope you enjoy it.
 	git clone git@github.com:metageni/Sequence-Cleaner.git
 
 	# install focus
-	cd Sequence-Cleaner && python setup.py install
+	cd Sequence-Cleaner && pip install -U -r requirements.txt && python setup.py install
 
 ## Usage
     usage: sequence_cleaner [-h] [-v] -q QUERY -o OUTPUT_DIRECTORY
